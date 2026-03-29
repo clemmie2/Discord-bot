@@ -1,0 +1,73 @@
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { errorEmbed, infoEmbed } from '../utils/helpers.js';
+import { getWarnings, clearWarnings, removeWarning } from '../data/warnings.js';
+
+export default {
+  data: new SlashCommandBuilder()
+    .setName('warnings')
+    .setDescription('Manage warnings for a member')
+    .addSubcommand(sub =>
+      sub.setName('list').setDescription('List all warnings for a user')
+        .addUserOption(opt => opt.setName('user').setDescription('User to check').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('clear').setDescription('Clear all warnings for a user')
+        .addUserOption(opt => opt.setName('user').setDescription('User to clear warnings for').setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName('remove').setDescription('Remove a specific warning by ID')
+        .addUserOption(opt => opt.setName('user').setDescription('User to remove warning from').setRequired(true))
+        .addStringOption(opt => opt.setName('warn_id').setDescription('Warning ID (from /warnings list)').setRequired(true)))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+  cooldown: 3,
+
+  async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+
+    const sub = interaction.options.getSubcommand();
+    const target = interaction.options.getUser('user');
+
+    if (sub === 'list') {
+      const list = getWarnings(interaction.guild.id, target.id);
+      if (list.length === 0) {
+        return interaction.editReply({ embeds: [infoEmbed('No Warnings', `${target.tag} has no warnings.`)] });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xf39c12)
+        .setTitle(`⚠️ Warnings for ${target.tag}`)
+        .setDescription(`**Total:** ${list.length} warning(s)`)
+        .setThumbnail(target.displayAvatarURL())
+        .setTimestamp();
+
+      list.slice(-10).forEach((w, i) => {
+        embed.addFields({
+          name: `Warning #${i + 1} | ID: ${w.id}`,
+          value: `**Reason:** ${w.reason}\n**By:** ${w.moderator}\n**When:** ${w.timestamp}`,
+        });
+      });
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    if (sub === 'clear') {
+      const count = clearWarnings(interaction.guild.id, target.id);
+      return interaction.editReply({
+        embeds: [infoEmbed('Warnings Cleared', `Removed **${count}** warning(s) from ${target.tag}.`)]
+      });
+    }
+
+    if (sub === 'remove') {
+      const warnId = parseInt(interaction.options.getString('warn_id'));
+      if (isNaN(warnId)) {
+        return interaction.editReply({ embeds: [errorEmbed('Invalid ID', 'Please provide a valid warning ID from `/warnings list`.')] });
+      }
+      const removed = removeWarning(interaction.guild.id, target.id, warnId);
+      if (!removed) {
+        return interaction.editReply({ embeds: [errorEmbed('Not Found', `Warning ID \`${warnId}\` was not found for ${target.tag}.`)] });
+      }
+      return interaction.editReply({
+        embeds: [infoEmbed('Warning Removed', `Removed warning \`${warnId}\` from ${target.tag}.`)]
+      });
+    }
+  },
+};
