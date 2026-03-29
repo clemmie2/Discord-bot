@@ -24,7 +24,7 @@ export default {
     }
 
     try {
-      let messages = await interaction.channel.messages.fetch({ limit: targetUser ? 100 : amount });
+      let messages = await interaction.channel.messages.fetch({ limit: targetUser ? 500 : amount });
 
       if (targetUser) {
         messages = messages.filter(m => m.author.id === targetUser.id).first(amount);
