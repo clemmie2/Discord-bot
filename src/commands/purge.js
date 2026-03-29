@@ -6,7 +6,7 @@ export default {
     .setName('purge')
     .setDescription('Bulk delete messages from a channel')
     .addIntegerOption(opt =>
-      opt.setName('amount').setDescription('Number of messages to delete (1-100)').setMinValue(1).setMaxValue(100).setRequired(true))
+      opt.setName('amount').setDescription('Number of messages to delete (1-500)').setMinValue(1).setMaxValue(500).setRequired(true))
     .addUserOption(opt =>
       opt.setName('user').setDescription('Only delete messages from this user (optional)').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
